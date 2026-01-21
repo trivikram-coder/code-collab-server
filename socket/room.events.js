@@ -1,7 +1,7 @@
 const users = {};      // { roomId: { userName: [socketId] } }
 const roomChats = {};
 const { roomCode } = require("./editor.events");
-
+const {roomFiles}=require("./file.events")
 module.exports = (io, socket) => {
 
   // -------------------------
@@ -10,7 +10,9 @@ module.exports = (io, socket) => {
   socket.on("join-room", ({ roomId, userName }) => {
     socket.join(roomId);
     console.log(`${userName} joined room: ${roomId}`);
-
+    if(roomFiles[roomId]){
+      socket.emit("file-created",roomFiles[roomId].files)
+    }
     // ✅ SEND CODE ONLY TO JOINING USER
     if (roomCode[roomId]) {
       socket.emit("code-sent", roomCode[roomId]);

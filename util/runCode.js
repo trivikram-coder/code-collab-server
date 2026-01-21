@@ -42,10 +42,24 @@ const runCode = (req, res) => {
 // JAVASCRIPT
 // ===========================
 const runJavaScript = (code, input, res) => {
-  const file = path.join(tempDir, "main.js");
-  fs.writeFileSync(file, code);
-  handleProcessIO(spawn("node", [file]), input, res);
+  try {
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    const file = path.join(tempDir, `main-${Date.now()}.js`);
+    fs.writeFileSync(file, code);
+
+    const child = spawn(process.execPath, [file], {
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+
+    handleProcessIO(child, input, res);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
+
 
 // ===========================
 // TYPESCRIPT
