@@ -19,7 +19,7 @@ app.use(express.json())
 app.use(cors())
 app.use("/",runCodeRoute)
 app.get("/",(req,res)=>{
-    res.send(`<h3 style=color:blue>Code collab server running successfully</h3>`)
+    res.send(`<h3 style=color:blue>Code collab server running successfully 🚀🚀🚀</h3>`)
 })
 
 const PORT=process.env.PORT 
