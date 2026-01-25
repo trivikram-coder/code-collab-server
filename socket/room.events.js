@@ -1,41 +1,53 @@
-const users = {};      // { roomId: { userName: [socketId] } }
-const roomChats = {};
-const { roomCode } = require("./editor.events");
-const {roomFiles}=require("./file.events")
+const Room = require("../models/Room");
+
+const users = {}; // { roomId: { userName: [socketId] } }
+
 module.exports = (io, socket) => {
 
   // -------------------------
   // JOIN ROOM
   // -------------------------
-  socket.on("join-room", ({ roomId, userName }) => {
+  socket.on("join-room", async ({ roomId, roomName, userName }) => {
+    if (!roomId || !userName) return;
+
+    let room = await Room.findOne({ roomId });
+
+    // 🔹 Create room if not exists
+    if (!room) {
+      room = await Room.create({
+        roomId,
+        roomName: roomName || "Untitled Room",
+        admin: userName,
+        users: [{ userName }],
+        files: [],
+        chats: []
+      });
+    } else {
+      // 🔹 Add user if not already present
+      const exists = room.users.some(u => u.userName === userName);
+      if (!exists) {
+        room.users.push({ userName });
+        await room.save();
+      }
+    }
+
+    // ---------------- SOCKET JOIN ----------------
     socket.join(roomId);
-    console.log(`${userName} joined room: ${roomId}`);
-    if(roomFiles[roomId]){
-      socket.emit("file-created",roomFiles[roomId].files)
-    }
-    // ✅ SEND CODE ONLY TO JOINING USER
-    if (roomCode[roomId]) {
-      socket.emit("code-sent", roomCode[roomId]);
-    }
 
+    // ---------------- MEMORY USERS ----------------
     if (!users[roomId]) users[roomId] = {};
-    if (!roomChats[roomId]) roomChats[roomId] = [];
-
-    if (!users[roomId][userName]) {
-      users[roomId][userName] = [];
-    }
+    if (!users[roomId][userName]) users[roomId][userName] = [];
 
     if (!users[roomId][userName].includes(socket.id)) {
       users[roomId][userName].push(socket.id);
     }
 
-    // broadcast unique users list
-    io.to(roomId).emit("room-users", Object.keys(users[roomId]));
+    // ---------------- SEND DATA TO CLIENT ----------------
+    socket.emit("file-created", room.files);
+    socket.emit("receive-message", { chats: room.chats });
 
-    // send chat history only to this socket
-    socket.emit("receive-message", {
-      chats: roomChats[roomId],
-    });
+    // broadcast active users
+    io.to(roomId).emit("room-users", Object.keys(users[roomId]));
   });
 
   // -------------------------
@@ -72,5 +84,3 @@ module.exports = (io, socket) => {
     }
   });
 };
-
-module.exports.roomChats = roomChats;

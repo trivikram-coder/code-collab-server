@@ -1,19 +1,24 @@
 // socket/chat.events.js
-const { roomChats } = require("./room.events");
+const Room = require("../models/Room");
 
 module.exports = (io, socket) => {
 
-  socket.on("send-message", ({ roomId, userName, message }) => {
-    if (!roomChats[roomId]) roomChats[roomId] = [];
-    console.log(message)
-    roomChats[roomId].push({
-      userName,
-      message
+  socket.on("send-message", async ({ roomId, userName, message }) => {
+    if (!roomId || !userName || !message) return;
+
+    const room = await Room.findOne({ roomId });
+    if (!room) return;
+
+    room.chats.push({
+      message,
+      user: userName
     });
-   
-    // 🔥 realtime broadcast
+
+    await room.save();
+
+    // 🔥 realtime broadcast (DB is source of truth)
     io.to(roomId).emit("receive-message", {
-      chats: roomChats[roomId],
+      chats: room.chats,
       time: new Date().toLocaleString()
     });
   });

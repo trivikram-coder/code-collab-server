@@ -1,62 +1,87 @@
+const Room = require("../models/Room");
+
+// optional in-memory cache (for speed, not required)
 const roomFiles = {};
 
 const fileEvents = (io, socket) => {
 
-  socket.on("file-create", ({ roomId, file }) => {
+  // -------------------------
+  // FILE CREATE
+  // -------------------------
+  socket.on("file-create", async ({ roomId, file }) => {
     if (!roomId || !file) return;
 
-    // ensure room exists
-    if (!roomFiles[roomId]) {
-      roomFiles[roomId] = {
-        files: [],
-      };
-    }
+    const room = await Room.findOne({ roomId });
+    if (!room) return;
 
-    // prevent duplicate file IDs
-    const exists = roomFiles[roomId].files.some(
-      (f) => f.id === file.id
-    );
+    // prevent duplicate file id
+    const exists = room.files.some(f => f.id === file.id);
+    if (exists) return;
 
-    if (!exists) {
-      roomFiles[roomId].files.push(file);
-    }
+    room.files.push(file);
+    await room.save();
 
-    console.log("FILES IN ROOM:", roomId, roomFiles[roomId].files);
+    // update cache
+    roomFiles[roomId] = { files: room.files };
 
-    // emit ONLY array (frontend expects array)
-    io.to(roomId).emit(
-      "file-created",
-      roomFiles[roomId].files
-    );
+    // emit full file list
+    io.to(roomId).emit("file-created", room.files);
   });
-  socket.on("file-content-update", ({ roomId, fileId, content }) => {
-  if (!roomFiles[roomId]) return;
 
-  const file = roomFiles[roomId].files.find(
-    (f) => f.id === fileId
-  );
+  // -------------------------
+  // FILE CONTENT UPDATE
+  // -------------------------
+  socket.on("file-content-update", async ({ roomId, fileId, content }) => {
+    if (!roomId || !fileId) return;
 
-  if (!file) return; // 🔥 SAFETY CHECK
+    const room = await Room.findOne({ roomId });
+    if (!room) return;
 
-  file.content = content;
+    const file = room.files.find(f => f.id === fileId);
+    if (!file) return;
 
-  io.to(roomId).emit("file-content-updated", {
-    fileId,
-    content,
+    file.content = content;
+    await room.save();
+
+    // update cache
+    roomFiles[roomId] = { files: room.files };
+
+    // emit delta update
+    io.to(roomId).emit("file-content-updated", {
+      fileId,
+      content
+    });
   });
-});
-socket.on("file-delete",({roomId,fileId,userName})=>{
-    if(!roomFiles[roomId])return;
-    const file=roomFiles[roomId].files.find(file=>file.id===fileId);
-    
-    if(file.createdBy!==userName){
-        socket.emit("delete-error",{msg:"You are not allowed to delete this file"})
-        return;
+
+  // -------------------------
+  // FILE DELETE
+  // -------------------------
+  socket.on("file-delete", async ({ roomId, fileId, userName }) => {
+    if (!roomId || !fileId) return;
+
+    const room = await Room.findOne({ roomId });
+    if (!room) return;
+
+    const file = room.files.find(f => f.id === fileId);
+    if (!file) return;
+
+    // permission check
+    if (file.createdBy !== userName) {
+      socket.emit("delete-error", {
+        msg: "You are not allowed to delete this file"
+      });
+      return;
     }
-    roomFiles[roomId].files=roomFiles[roomId].files.filter(file=>file.id!==fileId)
-    console.log(JSON.stringify(file)+"has been deleted")
-    io.to(roomId).emit("file-created",roomFiles[roomId].files)
-    
-})
+
+    room.files = room.files.filter(f => f.id !== fileId);
+    await room.save();
+
+    // update cache
+    roomFiles[roomId] = { files: room.files };
+
+    // emit updated file list
+    io.to(roomId).emit("file-created", room.files);
+  });
 };
-module.exports={fileEvents,roomFiles}
+
+module.exports = { fileEvents, roomFiles };
