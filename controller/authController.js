@@ -90,6 +90,21 @@ const updateUser=async(req,res)=>{
         res.status(500).json({success:false,error:error.message})
     }
 }
+const checkEmail=async(req,res)=>{
+    try {
+        const email=req.params.email;
+        if(!email){
+            return res.status(400).json({success:false,message:"Please provide email"})
+        }
+        const existUser=await User.findOne({email});
+        if(!existUser){
+            return res.status(404).json({status:false,message:"Email not exists"});
+        }
+        res.status(200).json({status:true,message:"Email exists"})
+    } catch (error) {
+        res.status(500).json({success:false,error:error.message})
+    }
+}
 const resetPassword=async(req,res)=>{
     try {
         const email=req.params.email;
