@@ -107,10 +107,14 @@ const checkEmail=async(req,res)=>{
 }
 const resetPassword=async(req,res)=>{
     try {
-        const email=req.params.email;
+        const email=req.email;
         const {newPassword}=req.body;
+        console.log(email)
+        console.log(newPassword)
         const hashPass=await bcrypt.hash(newPassword,10)
+        console.log(hashPass)
         const updatedPassword=await User.findOneAndUpdate({email},{password:hashPass},{new:true,runValidators:true});
+        
         if(!updatedPassword){
             return res.status(404).json({success:false,message:"User not found or unauthorized"})
         }
