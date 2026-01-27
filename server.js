@@ -19,7 +19,7 @@ dotenv.config();
 app.use(express.json())
 app.use(cors())
 app.use("/",runCodeRoute)
-app.use("/room",authRoute)
+app.use("/auth",authRoute)
 app.get("/",(req,res)=>{
     res.send(`<h3 style=color:blue>Code collab server running successfully 🚀🚀🚀</h3>`)
 })
