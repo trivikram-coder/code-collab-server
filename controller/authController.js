@@ -119,4 +119,4 @@ const resetPassword=async(req,res)=>{
         res.status(500).json({success:false,error:error.message})
     }
 }
-module.exports={register,login,getUser,updateUser,resetPassword}
+module.exports={register,login,getUser,updateUser,resetPassword,checkEmail}
