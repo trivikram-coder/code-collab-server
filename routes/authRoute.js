@@ -8,6 +8,6 @@ router.post("/register",register)
 router.post("/login",login)
 router.get("/users/me",verifyToken,getUser)
 router.put("/users/me/:id",verifyToken,updateUser)
-router.put("/users/reset-password/",verifyEmailServiceToken,resetPassword)
+router.put("/users/reset-password",verifyEmailServiceToken,resetPassword)
 router.get("/users/check-email/:email",checkEmail)
 module.exports=router
