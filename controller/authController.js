@@ -88,7 +88,7 @@ const updateUser=async(req,res)=>{
     res.status(200).json({
         success:true,
         message:"User updated successfully",
-        updatedUser:updateUser
+        updatedUser:updatedUser
     })
     } catch (error) {
         res.status(500).json({success:false,error:error.message})
