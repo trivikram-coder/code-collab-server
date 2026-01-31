@@ -29,7 +29,8 @@ const register=async(req,res)=>{
             id:user._id,
             userName:user.userName,
             mobileNumber:user.mobileNumber,
-            email:user.email
+            email:user.email,
+            joinedAt:user.createdAt
         })
         res.status(201).json({success:true,message:"User registered successfully",token:token})
     } catch (error) {
@@ -65,7 +66,8 @@ const login=async(req,res)=>{
             id:user._id,
             userName:user.userName,
             mobileNumber:user.mobileNumber,
-            email:user.email
+            email:user.email,
+            joinedAt:user.createdAt
         },token:token})
     } catch (error) {
         res.status(500).json({success:false,error:error.message})
@@ -85,9 +87,17 @@ const updateUser=async(req,res)=>{
     if(!updatedUser){
         return res.status(404).json({success:false,message:"User not found"})
     }
+    const token=generateToken({
+        id: updatedUser._id,
+  userName: updatedUser.userName,
+  mobileNumber: updatedUser.mobileNumber,
+  email: updatedUser.email,
+  joinedAt:updatedUser.createdAt
+    })
     res.status(200).json({
         success:true,
         message:"User updated successfully",
+        token:token,
         updatedUser:updatedUser
     })
     } catch (error) {
