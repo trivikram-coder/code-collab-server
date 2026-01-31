@@ -31,7 +31,7 @@ const register=async(req,res)=>{
             mobileNumber:user.mobileNumber,
             email:user.email,
             joinedAt:user.createdAt
-        })
+        }) 
         res.status(201).json({success:true,message:"User registered successfully",token:token})
     } catch (error) {
         res.status(500).json({error:error.message})
