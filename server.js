@@ -9,6 +9,8 @@ const socketIo=require("./socket/socket")
 const db=require("./util/db")
 const authRoute=require("./routes/authRoute")
 const runCodeRoute=require("./routes/runCodeRoute")
+const swaggerUi=require("swagger-ui-express")
+const swaggerFile=require("./swagger-output.json")
 const io=new Server(server,{
     cors:{
         origin:"*"
@@ -18,8 +20,10 @@ socketIo(io)
 dotenv.config();
 app.use(express.json())
 app.use(cors())
+app.use("/api-docs",swaggerUi.serve,swaggerUi.setup(swaggerFile))
 app.use("/",runCodeRoute)
 app.use("/auth",authRoute)
+
 app.get("/",(req,res)=>{
     res.send(`<h3 style=color:blue>Code collab server running successfully 🚀🚀🚀</h3>`)
 })
