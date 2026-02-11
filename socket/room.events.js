@@ -41,7 +41,7 @@ module.exports = (io, socket) => {
     if (!users[roomId][userName].includes(socket.id)) {
       users[roomId][userName].push(socket.id);
     }
-    socket.emit("room-name",{roomName:room.roomName})
+    socket.emit("room-details",{userName:userName,roomName:room.roomName})
     // ---------------- SEND DATA TO CLIENT ----------------
     socket.emit("file-created", room.files);
     socket.emit("receive-message", { chats: room.chats });
