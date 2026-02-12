@@ -8,10 +8,14 @@ const fileEvents = (io, socket) => {
   // -------------------------
   // FILE CREATE
   // -------------------------
-  socket.on("file-create", async ({ roomId, file }) => {
+  socket.on("file-create", async ({ roomId,userName, file }) => {
+
     if (!roomId || !file) return;
 
     const room = await Room.findOne({ roomId });
+    const user=room.users.find(u=>u.userName===userName);
+    const isAdminOrEditor=user?.role==="admin"||user?.role==="editor";
+    if(!isAdminOrEditor)return;
     if (!room) return;
 
     // prevent duplicate file id
@@ -35,8 +39,11 @@ const fileEvents = (io, socket) => {
     if (!roomId || !fileId) return;
 
     const room = await Room.findOne({ roomId });
-    if (!room) return;
 
+    if (!room) return;
+    const user=room.users.find(u=>u.userName===userName);
+    const isAdminOrEditor=user?.role==="admin"||user?.role==="editor";
+    if(!isAdminOrEditor)return;
     const file = room.files.find(f => f.id === fileId);
     if (!file) return;
 
@@ -61,7 +68,9 @@ const fileEvents = (io, socket) => {
 
     const room = await Room.findOne({ roomId });
     if (!room) return;
-
+    const user=room.users.find(u=>u.userName===userName);
+    const isAdminOrEditor=user?.role==="admin"||user?.role==="editor";
+    if(!isAdminOrEditor)return;
     const file = room.files.find(f => f.id === fileId);
     if (!file) return;
 

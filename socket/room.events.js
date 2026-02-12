@@ -9,16 +9,17 @@ module.exports = (io, socket) => {
   // -------------------------
   socket.on("join-room", async ({ roomId, roomName, userName }) => {
     if (!roomId || !userName) return;
-
+    
     let room = await Room.findOne({ roomId });
 
     // 🔹 Create room if not exists
     if (!room) {
+      socket.userName=userName;
       room = await Room.create({
         roomId,
         roomName: roomName || "Untitled Room",
         admin: userName,
-        users: [{ userName }],
+        users: [{ userName,role:"admin" }],
         files: [],
         chats: []
       });
@@ -45,11 +46,29 @@ module.exports = (io, socket) => {
     // ---------------- SEND DATA TO CLIENT ----------------
     socket.emit("file-created", room.files);
     socket.emit("receive-message", { chats: room.chats });
-
+ 
+    io.to(roomId).emit("room-admin",{admin:room.admin})
     // broadcast active users
-    io.to(roomId).emit("room-users", Object.keys(users[roomId]));
+    io.to(roomId).emit("room-users", room.users);
   });
-
+  socket.on("change-role",async({admin,roomId,userName,role})=>{
+    console.log(`${admin}${roomId} ${userName} ${role}`)
+    
+    const room=await Room.findOne({roomId:roomId});
+    
+    if(!room){
+      socket.emit("error-message",{error:"Room doesnot exists"});
+      return ;
+    }
+    if(room.admin!==admin)return;
+  
+    const user=room.users.find(u=>u.userName===userName);
+    if(!user)return;
+    user.role=role
+    await room.save();
+    console.log("Updated role",room)
+    io.to(roomId).emit("room-users", room.users);
+  })
   // -------------------------
   // LEAVE ROOM
   // -------------------------

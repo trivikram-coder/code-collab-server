@@ -18,14 +18,15 @@ const roomSchema = new mongoose.Schema({
   },
 
   users: [
-    {
-      userName: String,
-      joinedAt: {
-        type: Date,
-        default: Date.now
-      }
+  {
+    userName: String,
+    role: {
+      type: String,
+      enum: ["admin", "editor", "viewer"],
+      default: "viewer"
     }
-  ],
+  }
+],
   files:[
     {
       id:String,
