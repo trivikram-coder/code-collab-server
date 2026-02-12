@@ -35,7 +35,7 @@ const fileEvents = (io, socket) => {
   // -------------------------
   // FILE CONTENT UPDATE
   // -------------------------
-  socket.on("file-content-update", async ({ roomId,userName, fileId, content }) => {
+  socket.on("file-content-update", async ({ roomId,userName, fileId, content,version }) => {
     if (!roomId || !fileId) return;
 
     const room = await Room.findOne({ roomId });
@@ -47,14 +47,20 @@ const fileEvents = (io, socket) => {
     const file = room.files.find(f => f.id === fileId);
     if (!file) return;
 
-    file.content = content;
+    // 🔥 Ignore older updates
+  if (file.version && version < file.version) {
+    return;
+  }
+
+  file.content = content;
+  file.version = version;
     await room.save();
 
     // update cache
     roomFiles[roomId] = { files: room.files };
 
     // emit delta update
-    io.to(roomId).emit("file-content-updated", {
+    socket.to(roomId).emit("file-content-updated", {
       fileId,
       content
     });

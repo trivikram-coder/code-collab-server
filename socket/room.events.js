@@ -115,35 +115,5 @@ module.exports = (io, socket) => {
     io.to(roomId).emit("room-users", room.users);
   });
 
-  /* ------------------------------------ */
-  /*             DISCONNECT               */
-  /* ------------------------------------ */
-  socket.on("disconnecting", async () => {
-    try {
-      const rooms = [...socket.rooms].filter(r => r !== socket.id);
 
-      for (const roomId of rooms) {
-        const room = await Room.findOne({ roomId });
-        if (!room) continue;
-
-        room.users = room.users.filter(
-          u => u.userName !== socket.userName
-        );
-
-        // 🔥 Transfer Admin if needed
-        if (room.admin === socket.userName && room.users.length > 0) {
-          room.admin = room.users[0].userName;
-          room.users[0].role = "admin";
-        }
-
-        await room.save();
-
-        io.to(roomId).emit("room-admin", { admin: room.admin });
-        io.to(roomId).emit("room-users", room.users);
-      }
-
-    } catch (error) {
-      console.error("Disconnect error:", error);
-    }
-  });
 };

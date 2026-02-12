@@ -33,7 +33,8 @@ const roomSchema = new mongoose.Schema({
       name:String,
     language:String,
     content:String,
-    createdBy:String
+    createdBy:String,
+    version:String
     }
   ],
     chats:[
