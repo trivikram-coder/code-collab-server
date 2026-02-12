@@ -72,19 +72,29 @@ module.exports = (io, socket) => {
   // -------------------------
   // LEAVE ROOM
   // -------------------------
-  socket.on("leave-room", ({ roomId, userName }) => {
-    if (!users[roomId]?.[userName]) return;
+  socket.on("leave-room", async ({ roomId, userName }) => {
+  try {
+    const room = await Room.findOneAndUpdate(
+      { roomId },
+      { $pull: { users: { userName } } },
+      { new: true }
+    );
 
-    users[roomId][userName] =
-      users[roomId][userName].filter(id => id !== socket.id);
-
-    if (users[roomId][userName].length === 0) {
-      delete users[roomId][userName];
+    if (!room) {
+      socket.emit("error-message", { error: "Room does not exist" });
+      return;
     }
 
     socket.leave(roomId);
-    io.to(roomId).emit("room-users", Object.keys(users[roomId]));
-  });
+
+    io.to(roomId).emit("room-users", room.users);
+
+  } catch (error) {
+    console.error(error);
+    socket.emit("error-message", { error: "Something went wrong" });
+  }
+});
+
 
   // -------------------------
   // DISCONNECT
