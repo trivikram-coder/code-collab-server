@@ -35,11 +35,11 @@ const fileEvents = (io, socket) => {
   // -------------------------
   // FILE CONTENT UPDATE
   // -------------------------
-  socket.on("file-content-update", async ({ roomId, fileId, content }) => {
+  socket.on("file-content-update", async ({ roomId,userName, fileId, content }) => {
     if (!roomId || !fileId) return;
 
     const room = await Room.findOne({ roomId });
-
+    console.log("Content of the file",content)
     if (!room) return;
     const user=room.users.find(u=>u.userName===userName);
     const isAdminOrEditor=user?.role==="admin"||user?.role==="editor";
