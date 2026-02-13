@@ -22,5 +22,14 @@ module.exports = (io, socket) => {
       time: new Date().toLocaleString()
     });
   });
-
+  socket.on("get-messages",async({roomId})=>{
+    console.log("Event emitted")
+    if(!roomId)return;
+    const room=await Room.findOne({roomId})
+    if(!room)return;
+    io.to(roomId).emit("receive-message",{
+      chats:room.chats,
+      time:new Date().toLocaleString()
+    })
+  })
 };

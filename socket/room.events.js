@@ -61,7 +61,7 @@ module.exports = (io, socket) => {
     }
 
     socket.join(roomId);
-
+    socket.broadcast.to(roomId).emit("joined-user",{message:`${userName} joined the room`})
     socket.emit("room-details", {
       userName,
       roomName: room.roomName
