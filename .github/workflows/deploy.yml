@@ -2,10 +2,10 @@ name: Deploy App
 on:
     push:
         branches:
-            -main
+            - main
 jobs:
     build:
-        runs-on: ubuntu@latest
+        runs-on: ubuntu-latest
         
         steps:
             - name: Action Checkout
