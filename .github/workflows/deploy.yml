@@ -17,4 +17,16 @@ jobs:
                 node-version: 18
             - name: Install Dependencies
               run: npm install
-            
+            - name: Deploy to EC2
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                host: ${{ secrets.EC2_HOST }}
+                username: ubuntu
+                key: ${{ secrets.EC2_SSH_KEY }}
+                script: |
+                    cd ~/code-collab-server
+                    git fetch origin
+                    git reset --hard origin/main
+                    npm install
+                    pm2 restart codecollab || pm2 start server.js --name codecollab
+                  
