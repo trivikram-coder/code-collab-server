@@ -26,7 +26,7 @@ jobs:
                 script: |
                     cd ~/code-collab-server
                     git fetch origin
-                    git reset --hard origin/main
+                    git reset --hard origin/master
                     npm install
                     pm2 restart codecollab || pm2 start server.js --name codecollab
                   
