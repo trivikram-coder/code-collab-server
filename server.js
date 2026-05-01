@@ -26,7 +26,7 @@ app.use("/",runCodeRoute)
 app.use("/auth",authRoute)
 app.use("/ai",aiRoute)
 app.get("/",(req,res)=>{
-    res.send(`<h3 style=color:blue>Code Collab Server running successfully 🚀🚀🚀</h3>`)
+    res.send(`<h3 style=color:orange>Code Collab Server running successfully 🚀🚀🚀</h3>`)
 })
 db()
 const PORT=process.env.PORT 
