@@ -7,7 +7,6 @@ const {
   fixCode,
   analyzeCode,
 } = require("../controller/aiController");
-
 // 💬 Chat with AI
 router.post("/chat", aiChat);
 
