@@ -1,112 +1,236 @@
 // aiController.js
 
-const { callAI, callAIStream, buildMessages } = require("../util/aiService");
+const {
+  callAI,
+  callAIStream,
+  buildMessages,
+} = require("../util/aiService");
 
 // ---------------------------------------------------------------------------
-// System prompts
+// Formatting Rules
 // ---------------------------------------------------------------------------
 
-// gpt-4o-mini ignores vague rules. Showing it a concrete bad→good example
-// is the most reliable way to get properly formatted output.
 const FORMATTING_RULES = `
-=== MANDATORY FORMATTING RULES ===
+=== STRICT CODE FORMATTING RULES ===
 
-RULE 1: Every code block MUST use this exact format — language tag, then newline, then code:
+1. ALWAYS return properly formatted markdown code blocks
 
-\`\`\`javascript
-function isEven(n) {
-  if (n % 2 === 0) {
-    return "Even";
-  }
-  return "Odd";
-}
-\`\`\`
+2. NEVER compress code into one line
 
-RULE 2: NEVER merge the language tag with the first line of code.
-BAD:  \`\`\`javascriptfunction isEven(n) { ... }
-GOOD: \`\`\`javascript
-      function isEven(n) {
+3. ALWAYS preserve indentation
 
-RULE 3: NEVER compress code onto one line.
-BAD:  function isEven(n) { if (n % 2 === 0) { return "Even"; } return "Odd"; }
-GOOD: (multi-line, one statement per line, as shown in RULE 1)
+4. NEVER switch programming languages
 
-RULE 4: Use 2-space indentation for JS/TS, 4-space for Python/Java/C++.
+5. Use EXACTLY the requested language
 
-RULE 5: For plain text explanations, write normal prose. Never wrap prose in a \`\`\`text block.
+6. NEVER explain outside code block in FIX mode
 
 === END RULES ===
 `;
 
+// ---------------------------------------------------------------------------
+// System Prompts
+// ---------------------------------------------------------------------------
+
 const PROMPTS = {
-  chat: `You are a senior software engineer helping a developer understand and improve their code.
-${FORMATTING_RULES}`,
+  chat: `
+You are a senior software engineer helping a developer.
 
-  explain: `You are a senior software engineer. Explain the provided code clearly.
-Break your explanation into short numbered steps — one step per logical section.
-${FORMATTING_RULES}`,
+${FORMATTING_RULES}
+`,
 
-  fix: `You are an expert debugger. Return ONLY the corrected, properly formatted code block.
-No preamble. No "Here is the fixed code" sentence. No trailing commentary.
-If a change needs explanation, add it as a comment inside the code.
-${FORMATTING_RULES}`,
+  explain: `
+You are a senior software engineer.
 
-  analyze: `You are a code reviewer. Respond using exactly this structure:
+Explain code clearly in numbered steps.
+
+${FORMATTING_RULES}
+`,
+
+  fix: `
+You are an expert debugger.
+
+STRICT RULES:
+
+1. Return ONLY ONE markdown code block
+2. Use EXACTLY the requested language
+3. NEVER switch languages
+4. NEVER explain outside code
+5. NEVER compress code into one line
+6. ALWAYS preserve indentation
+
+Python Example:
+
+\`\`\`python
+def main():
+    print("Hello World")
+
+
+if __name__ == "__main__":
+    main()
+\`\`\`
+
+Java Example:
+
+\`\`\`java
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello World");
+    }
+}
+\`\`\`
+
+JavaScript Example:
+
+\`\`\`javascript
+function main() {
+  console.log("Hello World");
+}
+
+main();
+\`\`\`
+
+C++ Example:
+
+\`\`\`cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Hello World";
+
+    return 0;
+}
+\`\`\`
+
+${FORMATTING_RULES}
+`,
+
+  analyze: `
+You are a code reviewer.
+
+Respond ONLY in this format:
 
 Bugs:
-- <list bugs, or "None">
+- item
 
 Warnings:
-- <list edge cases or risky patterns>
+- item
 
 Improvements:
-- <list concrete suggestions>
+- item
 
-${FORMATTING_RULES}`,
+${FORMATTING_RULES}
+`,
 };
 
 // ---------------------------------------------------------------------------
-// User content builder
+// User Prompt Builder
 // ---------------------------------------------------------------------------
 
-const buildUserContent = ({ code, language, message, mode }) => {
+const buildUserContent = ({
+  code,
+  language,
+  message,
+}) => {
   const codeSection = code?.trim()
-    ? `\`\`\`${language}\n${code.trim()}\n\`\`\``
+    ? `\`\`\`${language}
+${code.trim()}
+\`\`\``
     : "No code provided.";
 
-  if (mode === "chat") {
-    return `Language: ${language}\n\nCode:\n${codeSection}\n\nQuestion:\n${message}`;
-  }
+  return `
+TARGET LANGUAGE: ${language}
 
-  return `Language: ${language}\n\nCode:\n${codeSection}`;
+CRITICAL:
+- Return code ONLY in ${language}
+- NEVER use another language
+- Preserve formatting
+- Preserve indentation
+
+User Code:
+${codeSection}
+
+User Request:
+${message || ""}
+`;
 };
 
 // ---------------------------------------------------------------------------
-// Handler factory
+// Handler Factory
 // ---------------------------------------------------------------------------
 
-const createHandler = (mode) => async (req, res) => {
-  try {
-    const { code, language, message, chatHistory, stream } = req.body;
+const createHandler =
+  (mode) => async (req, res) => {
+    try {
+      const {
+        code,
+        language,
+        message,
+        chatHistory,
+        stream,
+      } = req.body;
 
-    const userContent = buildUserContent({ code, language, message, mode });
-    const messages = buildMessages(PROMPTS[mode], userContent, chatHistory);
+      const userContent =
+        buildUserContent({
+          code,
+          language,
+          message,
+        });
 
-    if (stream) return callAIStream(messages, res);
+      const messages = buildMessages(
+        PROMPTS[mode],
+        userContent,
 
-    const reply = await callAI(messages);
-    return res.status(200).send(reply);
-  } catch (error) {
-    console.error(`[${mode}] error:`, error.message);
-    return res.status(500).send(`${mode} request failed`);
-  }
+        // IMPORTANT:
+        // only use chat history for chat mode
+        mode === "chat"
+          ? chatHistory
+          : []
+      );
+
+      if (stream) {
+        return callAIStream(
+          messages,
+          res
+        );
+      }
+
+      const reply =
+        await callAI(messages);
+
+      return res.status(200).send(reply);
+    } catch (error) {
+      console.error(
+        `[${mode}] error:`,
+        error.message
+      );
+
+      return res
+        .status(500)
+        .send(`${mode} failed`);
+    }
+  };
+
+// ---------------------------------------------------------------------------
+
+const aiChat =
+  createHandler("chat");
+
+const explainCode =
+  createHandler("explain");
+
+const fixCode =
+  createHandler("fix");
+
+const analyzeCode =
+  createHandler("analyze");
+
+// ---------------------------------------------------------------------------
+
+module.exports = {
+  aiChat,
+  explainCode,
+  fixCode,
+  analyzeCode,
 };
-
-// ---------------------------------------------------------------------------
-
-const aiChat      = createHandler("chat");
-const explainCode = createHandler("explain");
-const fixCode     = createHandler("fix");
-const analyzeCode = createHandler("analyze");
-
-module.exports = { aiChat, explainCode, fixCode, analyzeCode };
