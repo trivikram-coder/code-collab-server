@@ -233,9 +233,9 @@ const callAIStream = async (
           // IMPORTANT:
           // preserve token EXACTLY
 
-          res.write(
-            `data: ${token}\n\n`
-          );
+         res.write(
+          `data: ${JSON.stringify(token)}\n\n`
+        );
         } catch (err) {
           console.error(
             "Chunk parse error:",
